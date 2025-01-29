@@ -548,14 +548,14 @@ def visualize_diffusion_process(
             return {key: log[key] for key in return_keys}
     return log
 
-def get_mercari_dataloader(
+def get_custom_dataloader(
     batch_size=8,
     num_workers=4,
     path=None,
     **kwargs
 ):
     """
-    Mercariデータセットのデータローダーを取得する関数
+    カスタムデータセットのデータローダーを取得する関数
     
     Args:
         batch_size: バッチサイズ
@@ -564,14 +564,14 @@ def get_mercari_dataloader(
         **kwargs: その他のパラメータ（image_size以外）
     
     Returns:
-        DataLoader: Mercariデータセットのデータローダー
+        DataLoader: カスタムデータセットのデータローダー
     """
     # image_sizeがkwargsに含まれている場合は削除
     if 'image_size' in kwargs:
         del kwargs['image_size']
     
     # データセットの初期化
-    dataset = Mercaritrain_clip(
+    dataset = CustomDatasetTrainCLIP(
         path=path,
         **kwargs
     )
@@ -583,12 +583,12 @@ def get_mercari_dataloader(
         shuffle=False,
         num_workers=num_workers,
         drop_last=True,
-        collate_fn=mercari_collate_fn  # カスタムcollate_fnを追加
+        collate_fn=custom_collate_fn
     )
     
     return dataloader
 
-def mercari_collate_fn(batch):
+def custom_collate_fn(batch):
     """
     バッチデータを適切な形式に変換するcollate関数
     
@@ -603,7 +603,6 @@ def mercari_collate_fn(batch):
     
     for item in batch:
         images.append(item['image'])
-        # テキストがtupleの場合は文字列に変換
         if isinstance(item.get('text'), tuple):
             texts.append(' '.join(item['text']))
         else:
@@ -611,7 +610,7 @@ def mercari_collate_fn(batch):
     
     return {
         'image': torch.stack(images),
-        'text': texts  # リストとして返す
+        'text': texts
     }
 
 def get_batch_from_dataloader(dataloader, batch_idx=0):
@@ -639,7 +638,7 @@ def get_batch_from_dataloader(dataloader, batch_idx=0):
 # notebookでの使用方法：
 
 # データローダーの取得
-dataloader = get_mercari_dataloader(batch_size=8)
+dataloader = get_custom_dataloader(batch_size=8)
 
 # 1バッチの取得
 batch = get_batch_from_dataloader(dataloader)

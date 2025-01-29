@@ -1,5 +1,5 @@
 model:
-  base_learning_rate: 2.0e-6   # set to target_lr by starting main.py with '--scale_lr False'
+  base_learning_rate: 2.0e-6
   target: ldm.models.diffusion.ddpm.LatentDiffusion
   params:
     linear_start: 0.0015
@@ -17,7 +17,7 @@ model:
     scale_by_std: True
     monitor: 'val/loss_simple_ema'
 
-    scheduler_config: # 10000 warmup steps
+    scheduler_config:
       target: ldm.lr_scheduler.LambdaLinearScheduler
       params:
         warm_up_steps: [10000]
@@ -33,9 +33,9 @@ model:
         in_channels: 3
         out_channels: 3
         model_channels: 64
-        attention_resolutions: [ 1, 2, 4]   # 8, 4, 2
+        attention_resolutions: [ 1, 2, 4]
         num_res_blocks: 2
-        channel_mult: [ 1,2,4,4 ]  # 8,4,2,1
+        channel_mult: [ 1,2,4,4 ]
         num_heads: 8
         use_scale_shift_norm: True
         resblock_updown: True
@@ -46,7 +46,6 @@ model:
         embed_dim: 3
         n_embed: 2048
         monitor: "val/rec_loss"
-        ckpt_path: "/content/drive/Shareddrives/mercari/resulsts/logs/mercari/0722/2024-07-22T03-21-43_mercari_vq_4_16/checkpoints/last.ckpt"
         ddconfig:
           double_z: false
           z_channels: 3
@@ -72,9 +71,9 @@ data:
     batch_size: 128
     wrap: True
     train:
-      target: ldm.data.dis.Mercaritrain
+      target: ldm.data.dis.CustomDatasetTrain
     test:
-      target: ldm.data.dis.Mercaritrain #change ldm.data.dis.Cars3DTrain
+      target: ldm.data.dis.CustomDatasetTrain
 
 lightning:
   callbacks:
@@ -89,4 +88,4 @@ lightning:
           plot_swapped_concepts_partial: false
 
   trainer:
-    benchmark: True
+    benchmark: True 

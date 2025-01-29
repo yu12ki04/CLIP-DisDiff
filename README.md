@@ -24,7 +24,7 @@ This repository extends **DisDiff** [[paper]](https://arxiv.org/pdf/2301.13721) 
    Similar to DisDiff, a disentangling loss encourages independence among latent factors. However, here we can also leverage CLIP's image encoder to align text embeddings and generated images more explicitly (optional).
 
 <p align="center">
-  <img src="./assets/clip_disdiff_arch.png" width="60%"><br>
+  <img src="./assets/CLIP_DisDiff_framework.png" width="60%"><br>
   <em>Figure 1: High-level architecture of CLIP-DisDiff.</em>
 </p>
 

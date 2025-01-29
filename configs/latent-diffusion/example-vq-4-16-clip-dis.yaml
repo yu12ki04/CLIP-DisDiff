@@ -9,7 +9,7 @@ model:
     timesteps: 1000
     loss_type: l1
     first_stage_key: "image"
-    cond_stage_key: "image"
+    cond_stage_key: "text"
     image_size: 16
     channels: 3
     cond_stage_trainable: true
@@ -19,7 +19,7 @@ model:
     monitor: 'train/epoch_num'
     dis_loss_flag: True
 
-    scheduler_config: # 10000 warmup steps
+    scheduler_config:
       target: ldm.lr_scheduler.LambdaLinearScheduler
       params:
         warm_up_steps: [10000]
@@ -35,9 +35,9 @@ model:
         in_channels: 3
         out_channels: 3
         model_channels: 64
-        attention_resolutions: [ 1, 2, 4]   # 8, 4, 2
+        attention_resolutions: [ 1, 2, 4]
         num_res_blocks: 2
-        channel_mult: [ 1,2,4,4 ]  # 8,4,2,1
+        channel_mult: [ 1,2,4,4 ]
         num_heads: 8
         repre_emb_channels: 32
         use_scale_shift_norm: true
@@ -46,7 +46,7 @@ model:
         orth_emb: true
         ckpt_path: ${env:UNET_CKPT_PATH}
         load_ema_ckpt: true
-        latent_unit: 6
+        latent_unit: 7
 
     first_stage_config:
       target: ldm.models.autoencoder.VQModelInterface
@@ -73,24 +73,36 @@ model:
           target: torch.nn.Identity
 
     cond_stage_config:
-      target: ldm.modules.encoders.modules.Encoder4
-      params:
-        d: 128
-        latent_dim: 192
+      text_encoder:
+        target: ldm.modules.encoders.modules.FrozenCLIPTextEmbedder
+        params:
+          version: 'ViT-L/14'
+          device: 'cuda'        
+          max_length: 77        
+          n_repeat: 2
+          normalize: true
+      image_encoder:
+        target: ldm.modules.encoders.modules.FrozenClipImageEmbedder
+        params:
+          model: 'ViT-L/14'
+          jit: false
+          device: 'cuda'
+          antialias: false
     dis_loss_type: Z
     dis_weight: 0.05
+
 data:
   target: main.DataModuleFromConfig
   params:
-    batch_size: 128
+    batch_size: 10
     wrap: True
     num_workers: 8
     train:
-      target: ldm.data.dis.Mercaritrain
+      target: ldm.data.dis.CustomDatasetTrainCLIP
       params:
         path: ${env:DB_PATH}
     test:
-      target: ldm.data.dis.Mercaritrain
+      target: ldm.data.dis.CustomDatasetTrainCLIP
       params:
         path: ${env:DB_PATH}
 
@@ -109,4 +121,4 @@ lightning:
           plot_swapped_concepts: true
           plot_decoded_xstart: true
   trainer:
-    benchmark: True
+    benchmark: True 

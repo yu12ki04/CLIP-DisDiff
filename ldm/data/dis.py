@@ -417,120 +417,31 @@ class CelebAlmdb(Dataset):
             img = self.transform(img).permute(1, 2, 0)
         return {'image': img}
     
-class Mercarilmdb(Dataset):
-    """
-    also supports for d2c crop.
-    """
-    def __init__(self,
-                 path,
-                 image_size,
-                 original_resolution=128,
-                 split=None,
-                 as_tensor: bool = True,
-                 do_augment: bool = False,
-                 do_normalize: bool = True,
-                 crop_d2c: bool = False,
-                 **kwargs):
-        self.original_resolution = original_resolution
-        self.data = BaseLMDB(path, original_resolution, zfill=7)
-        self.length = len(self.data)
-        self.crop_d2c = crop_d2c
+class CustomDatasetTrain(Dataset):
+    def __init__(self, path=None, **kwargs):
+        if path is None:
+            path = os.getenv('DB_PATH', './data/example.lmdb')  # デフォルトパスを変更
+        
+        super().__init__(
+            path=path,
+            image_size=64,
+            original_resolution=128,
+            crop_d2c=False,
+            **kwargs
+        )
 
-        if split is None:
-            self.offset = 0
-        else:
-            raise NotImplementedError()
-
-        if crop_d2c:
-            transform = [
-                d2c_crop(),
-                transforms.Resize(image_size),
-            ]
-        else:
-            transform = [
-                transforms.Resize(image_size),
-                transforms.CenterCrop(image_size),
-            ]
-
-        if do_augment:
-            transform.append(transforms.RandomHorizontalFlip())
-        if as_tensor:
-            transform.append(transforms.ToTensor())
-        if do_normalize:
-            transform.append(
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
-        self.transform = transforms.Compose(transform)
-
-    def __len__(self):
-        return self.length
-
-    def __getitem__(self, index):
-        assert index < self.length
-        index = index + self.offset
-        img = self.data[index]
-        if self.transform is not None:
-            img = self.transform(img).permute(1, 2, 0)
-        return {'image': img}
-
-
-class Mercarilmdb_clip(Dataset):
-    """
-    Dataset that supports image and text retrieval from an LMDB dataset.
-    """
-    def __init__(self,
-                 path,
-                 image_size,
-                 original_resolution=128,
-                 split=None,
-                 as_tensor: bool = True,
-                 do_augment: bool = False,
-                 do_normalize: bool = True,
-                 crop_d2c: bool = False,
-                 **kwargs):
-        self.original_resolution = original_resolution
-        self.data = BaseLMDB_clip(path, original_resolution, zfill=7)
-        self.length = len(self.data)
-        self.crop_d2c = crop_d2c
-
-        if split is None:
-            self.offset = 0
-        else:
-            raise NotImplementedError()
-
-        if crop_d2c:
-            transform = [
-                d2c_crop(),
-                transforms.Resize(image_size),
-            ]
-        else:
-            transform = [
-                transforms.Resize(image_size),
-                transforms.CenterCrop(image_size),
-            ]
-
-        if do_augment:
-            transform.append(transforms.RandomHorizontalFlip())
-        if as_tensor:
-            transform.append(transforms.ToTensor())
-        if do_normalize:
-            transform.append(
-                transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5)))
-        self.transform = transforms.Compose(transform)
-
-    def __len__(self):
-        return self.length
-
-    def __getitem__(self, index):
-        assert index < self.length
-        index = index + self.offset
-
-        # Get both image and text
-        img, text = self.data[index]
-
-        if self.transform is not None:
-            img = self.transform(img).permute(1, 2, 0)
-
-        return {'image': img, 'text': text}
+class CustomDatasetTrainCLIP(Dataset):
+    def __init__(self, path=None, **kwargs):
+        if path is None:
+            path = os.getenv('DB_PATH', './data/example.lmdb')  # デフォルトパスを変更
+        
+        super().__init__(
+            path=path,
+            image_size=64,
+            original_resolution=128,
+            crop_d2c=False,
+            **kwargs
+        )
 
 class Bedroom_lmdb(Dataset):
     def __init__(self,
@@ -681,10 +592,10 @@ class Celebarain(CelebAlmdb):
                 crop_d2c=True,
                 **kwargs)
 
-class Mercaritrain(Mercarilmdb):
+class Mercaritrain(CustomDatasetTrain):
     def __init__(self, path=None, **kwargs):
         if path is None:
-            path = os.getenv('DB_PATH', './data/0711.lmdb')  # デフォルトパスを設定
+            path = os.getenv('DB_PATH', './data/example.lmdb')  # デフォルトパスを設定
         
         super().__init__(
             path=path,
@@ -694,10 +605,10 @@ class Mercaritrain(Mercarilmdb):
             **kwargs
         )
 
-class Mercaritrain_clip(Mercarilmdb_clip):
+class Mercaritrain_clip(CustomDatasetTrainCLIP):
     def __init__(self, path=None, **kwargs):
         if path is None:
-            path = os.getenv('DB_PATH', './data/1017.lmdb')  # デフォルトパスを設定
+            path = os.getenv('DB_PATH', './data/example.lmdb')  # デフォルトパスを設定
         
         super().__init__(
             path=path,

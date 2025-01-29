@@ -429,6 +429,15 @@ def visualize_diffusion_process(
             log["progressive_row"] = prog_row
 
     # コンセプトスワッピング
+                # # ノイズを追加する際に元の画像情報を部分的に保持
+                # noise = torch.randn_like(z)
+                # t = torch.full((z.shape[0],), ddim_steps // 4, device=z.device).long()  # タイムステップを小さくする
+                # x_T = model.q_sample(x_start=z, t=t, noise=noise)
+                
+                # # マスクを作成して元の画像情報を部分的に保持
+                # mask = torch.ones_like(x_T)
+                # mask = mask * 0.7  # 70%の元の画像情報を保持
+                # x_T = mask * x_T + (1 - mask) * z  # 元の画像とノイズ画像を混ぜる
     if plot_options['swapped_concepts']:
         x_samples_list = []
         with model.ema_scope("Plotting Swapping"):
@@ -437,12 +446,19 @@ def visualize_diffusion_process(
                 swapped_c = torch.stack(swapped_c.chunk(model.model.diffusion_model.latent_unit, dim=1), dim=1)
                 swapped_c = torch.squeeze(swapped_c)
                 swapped_c[:,cdx] = swapped_c[0,cdx][None,:].repeat(c.shape[0],1)
+                
+                # マスクの作成のみ
+                mask = torch.ones_like(z)
+                mask = mask * 0.0011  # 20%の元の画像情報を保持
+
                 samples, z_denoise_row = model.sample_log(
                     cond=swapped_c.reshape(c.shape[0],-1),
                     batch_size=N,
                     ddim=use_ddim,
                     ddim_steps=ddim_steps,
-                    eta=ddim_eta
+                    eta=ddim_eta,
+                    mask=mask,    # マスクを渡す
+                    x0=z,        # 元画像を渡す
                 )
                 x_samples = model.decode_first_stage(samples)
                 x_samples_list.append(x_samples)
@@ -532,14 +548,14 @@ def visualize_diffusion_process(
             return {key: log[key] for key in return_keys}
     return log
 
-def get_mercari_dataloader(
+def get_custom_dataloader(
     batch_size=8,
     num_workers=4,
     path=None,
     **kwargs
 ):
     """
-    Mercariデータセットのデータローダーを取得する関数
+    カスタムデータセットのデータローダーを取得する関数
     
     Args:
         batch_size: バッチサイズ
@@ -548,14 +564,14 @@ def get_mercari_dataloader(
         **kwargs: その他のパラメータ（image_size以外）
     
     Returns:
-        DataLoader: Mercariデータセットのデータローダー
+        DataLoader: カスタムデータセットのデータローダー
     """
     # image_sizeがkwargsに含まれている場合は削除
     if 'image_size' in kwargs:
         del kwargs['image_size']
     
     # データセットの初期化
-    dataset = Mercaritrain_clip(
+    dataset = CustomDatasetTrainCLIP(
         path=path,
         **kwargs
     )
@@ -564,15 +580,15 @@ def get_mercari_dataloader(
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=True,
+        shuffle=False,
         num_workers=num_workers,
         drop_last=True,
-        collate_fn=mercari_collate_fn  # カスタムcollate_fnを追加
+        collate_fn=custom_collate_fn
     )
     
     return dataloader
 
-def mercari_collate_fn(batch):
+def custom_collate_fn(batch):
     """
     バッチデータを適切な形式に変換するcollate関数
     
@@ -587,7 +603,6 @@ def mercari_collate_fn(batch):
     
     for item in batch:
         images.append(item['image'])
-        # テキストがtupleの場合は文字列に変換
         if isinstance(item.get('text'), tuple):
             texts.append(' '.join(item['text']))
         else:
@@ -595,27 +610,35 @@ def mercari_collate_fn(batch):
     
     return {
         'image': torch.stack(images),
-        'text': texts  # リストとして返す
+        'text': texts
     }
 
-def get_batch_from_dataloader(dataloader):
+def get_batch_from_dataloader(dataloader, batch_idx=0):
     """
-    データローダーから1バッチを取得する関数
+    データローダーから指定したインデックスのバッチを取得する関数
     
     Args:
         dataloader: データローダー
+        batch_idx: 取得したいバッチのインデックス（デフォルト: 0）
     
     Returns:
-        batch: 1バッチ分のデータ
+        batch: 指定したインデックスのバッチデータ
     """
-    return next(iter(dataloader))
+    iterator = iter(dataloader)
+    for _ in range(batch_idx):
+        try:
+            next(iterator)
+        except StopIteration:
+            iterator = iter(dataloader)  # データセットを最初から再開
+    
+    return next(iterator)
 
 # 使用例：
 """
 # notebookでの使用方法：
 
 # データローダーの取得
-dataloader = get_mercari_dataloader(batch_size=8)
+dataloader = get_custom_dataloader(batch_size=8)
 
 # 1バッチの取得
 batch = get_batch_from_dataloader(dataloader)

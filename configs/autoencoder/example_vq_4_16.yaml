@@ -28,7 +28,6 @@ model:
         disc_start: 0
         disc_weight: 0.75
         codebook_weight: 1.0
-        # n_classes: 1024
 
 data:
   target: main.DataModuleFromConfig
@@ -36,7 +35,9 @@ data:
     batch_size: 128
     wrap: True
     train:
-      target: ldm.data.dis.Mercaritrain
+      target: ldm.data.dis.CustomDatasetTrain
+    test:
+      target: ldm.data.dis.CustomDatasetTrain 
 
 lightning:
   callbacks:
@@ -49,4 +50,4 @@ lightning:
 
   trainer:
     benchmark: True
-    accumulate_grad_batches: 2
+    accumulate_grad_batches: 2 
